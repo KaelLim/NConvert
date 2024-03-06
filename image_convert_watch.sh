@@ -3,6 +3,7 @@
 # 定義 input 和 output 目錄
 inputDir="/path/to/input"
 outputDir="/path/to/output"
+# 預設文件路徑 /usr/local/sbin/NConvert/input & /usr/local/sbin/NConvert/output
 
 # 使用 inotifywait 監控 input 目錄下的所有檔案變化
 /usr/bin/inotifywait -m -e create -e moved_to -r "$inputDir" --format '%w%f' |
