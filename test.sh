@@ -1,34 +1,33 @@
 #!/bin/bash
 
 # 定義 input 和 output 目錄
-inputDir="/path/to/input"
-outputDir="/path/to/output"
+inputDir="/usr/local/sbin/NConvert/input"
+outputDir="/usr/local/sbin/NConvert/output"
 
 # 使用 inotifywait 監控 input 目錄下的所有檔案變化
 /usr/bin/inotifywait -m -e create -e moved_to -r "$inputDir" --format '%w%f' |
     while read file; do
-        # 檢查是否為壓縮檔（zip 或 rar）
-        if [[ $file == *.zip ]] || [[ $file == *.rar ]]; then
+        # 檢查是否為 tar 壓縮檔（包括 .tar, .tar.gz, .tgz, .tar.bz2）
+        if [[ $file == *.tar ]] || [[ $file == *.tar.gz ]] || [[ $file == *.tgz ]] || [[ $file == *.tar.bz2 ]]; then
             # 提取檔案名（不含路徑和擴展名）
-            filename=$(basename "$file" .zip)
-            filename=$(basename "$filename" .rar)
+            dirname=$(basename "$file" .tar)
+            dirname=$(basename "$dirname" .tar.gz)
+            dirname=$(basename "$dirname" .tgz)
+            dirname=$(basename "$dirname" .tar.bz2)
             # 創建解壓目標資料夾
-            mkdir -p "$inputDir/$filename"
+            mkdir -p "$inputDir/$dirname"
             
-            # 根據檔案類型解壓檔案
-            if [[ $file == *.zip ]]; then
-                unzip -o "$file" -d "$inputDir/$filename"
-            elif [[ $file == *.rar ]]; then
-                unrar x "$file" "$inputDir/$filename"
-            fi
+            # 解壓 tar 壓縮檔
+            tar -xf "$file" -C "$inputDir/$dirname"
 
             # 處理解壓後的所有圖片，轉換格式並移動到對應的 output 資料夾
-            find "$inputDir/$filename" -type f \( -iname \*.jpg -o -iname \*.png -o -iname \*.tif -o -iname \*.tiff \) -exec sh -c '
+            find "$inputDir/$dirname" -type f \( -iname \*.jpg -o -iname \*.png -o -iname \*.tif -o -iname \*.tiff \) -exec sh -c '
                 file="{}"
                 outputFile="${file/$inputDir/$outputDir}"
                 outputDir=$(dirname "$outputFile")
                 mkdir -p "$outputDir"
-                /path/to/nconvert -out png -o "$outputFile" "$file"
+                # 請確保已經正確設定了 nconvert 的路徑
+                /usr/local/sbin/NConvert -out png -o "$outputFile" "$file"
                 if [ $? -eq 0 ]; then
                     echo "Converted $file into $outputFile OK"
                     # 刪除原始檔案
@@ -38,14 +37,14 @@ outputDir="/path/to/output"
                 fi
             ' \;
 
-            # 將處理後的資料夾重新壓縮
+            # 轉換完成後，將 output 目錄下的資料夾重新壓縮為 tar.gz
             pushd "$outputDir" > /dev/null
-            zip -r "${filename}.zip" "$filename" > /dev/null
+            tar -czf "${dirname}.tar.gz" "$dirname"
             popd > /dev/null
 
             # 刪除原始壓縮檔和解壓後的資料夾
             rm "$file"
-            rm -r "$inputDir/$filename"
-            echo "Processed and removed original compressed file $file"
+            rm -r "$inputDir/$dirname"
+            echo "Processed and removed original compressed file $file and its extracted contents"
         fi
     done
