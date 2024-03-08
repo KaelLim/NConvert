@@ -27,7 +27,7 @@ outputDir="/usr/local/sbin/NConvert/output"
                 outputDir=$(dirname "$outputFile")
                 mkdir -p "$outputDir"
                 # 請確保已經正確設定了 nconvert 的路徑
-                /usr/local/sbin/NConvert -out png -o "$outputFile" "$file"
+                /usr/local/sbin/NConvert/nconvert -out png -o "$outputFile" "$file"
                 if [ $? -eq 0 ]; then
                     echo "Converted $file into $outputFile OK"
                     # 刪除原始檔案
